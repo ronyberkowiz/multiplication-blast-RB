@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>פצצת כפל 🎆</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a1a;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100svh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 100svh;
+    }
+
+    /* ========== SHARED ========== */
+    .hidden { display: none !important; }
+
+    .digit-btn {
+      width: 62px; height: 50px;
+      border: none; border-radius: 12px;
+      font-size: 1.4rem; font-weight: bold;
+      color: #fff; cursor: pointer;
+      transition: transform 0.1s, filter 0.1s, box-shadow 0.1s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+      user-select: none; position: relative;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    }
+    .digit-btn:active { transform: scale(0.88); filter: brightness(0.85); }
+    .digit-btn:hover  { filter: brightness(1.18); }
+    .digit-btn.blocked { opacity: 0.45; cursor: not-allowed !important; filter: grayscale(0.7); }
+    .digit-btn.blocked:hover { filter: grayscale(0.7); transform: none; }
+    .digit-btn.blocked:active { transform: none; }
+    .digit-btn.blocked::after {
+      content: '✕';
+      position: absolute; inset: 0; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: bold;
+      color: rgba(255,60,60,0.95);
+      background: rgba(0,0,0,0.38);
+    }
+
+    /* Arc button containers */
+    #arc-btns, #rescue-arc-btns {
+      position: relative;
+      width: 100%;
+    }
+    #arc-btns .digit-btn, #rescue-arc-btns .digit-btn {
+      position: absolute;
+      margin: 0;
+    }
+
+    /* ========== START SCREEN ========== */
+    #start-screen {
+      background: linear-gradient(135deg, #1a1a4e, #0d3b66);
+      border-radius: 20px; padding: 35px 25px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    }
+    #start-screen h1 {
+      font-size: 2.4rem; margin-bottom: 6px;
+      background: linear-gradient(45deg, #FFD700, #FF6B6B, #1E90FF);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #aaa; margin-bottom: 22px; font-size: 0.95rem; }
+    .instructions {
+      background: rgba(255,255,255,0.06); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 20px;
+      text-align: right; font-size: 0.88rem; line-height: 1.9;
+    }
+    .instructions strong { color: #FFD700; }
+    .digit-preview { display: flex; justify-content: center; gap: 7px; flex-wrap: wrap; margin-bottom: 22px; }
+    .digit-badge {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 1rem;
+    }
+    .digit-badge.wide { width: 52px; }
+    .credit { color: #666; font-size: 0.72rem; letter-spacing: 0.12em; margin-bottom: 18px; margin-top: -14px; }
+    .difficulty-choice { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+    .btn-difficulty {
+      flex: 1; padding: 14px 8px; border: none; border-radius: 16px;
+      font-size: 1.05rem; font-weight: bold; color: #fff; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .btn-difficulty:hover { transform: scale(1.05); filter: brightness(1.15); }
+    .btn-difficulty .diff-desc { font-size: 0.68rem; font-weight: normal; opacity: 0.88; }
+    .btn-diff-beginner { background: linear-gradient(135deg, #2E8B57, #32CD32); box-shadow: 0 4px 16px rgba(50,205,50,0.3); }
+    .btn-diff-master   { background: linear-gradient(135deg, #FF4444, #FF8C00); box-shadow: 0 4px 16px rgba(255,68,68,0.3); }
+    .btn-switch-master {
+      background: linear-gradient(135deg, #FF4444, #FF8C00);
+      color: #fff; border: none; padding: 11px 22px; font-size: 0.95rem;
+      font-weight: bold; border-radius: 20px; cursor: pointer;
+      margin-bottom: 10px; width: 100%; transition: filter 0.2s;
+    }
+    .btn-switch-master:hover { filter: brightness(1.15); }
+    .btn-start {
+      background: linear-gradient(135deg, #FFD700, #FF8C00);
+      color: #000; border: none; padding: 14px 50px;
+      font-size: 1.25rem; font-weight: bold; border-radius: 30px;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 5px 20px rgba(255,215,0,0.4);
+    }
+    .btn-start:hover { transform: scale(1.05); box-shadow: 0 8px 28px rgba(255,215,0,0.6); }
+
+    /* ========== GAME SCREEN ========== */
+    #game-screen {
+      background: #12122a; border-radius: 20px;
+      overflow: visible; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      display: flex; flex-direction: column; flex: 1;
+    }
+    #header {
+      background: #0a0a1a; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    #score-display { font-size: 0.85rem; color: #ccc; }
+    #score { color: #FFD700; font-weight: bold; font-size: 1.15rem; }
+    #streak-display { font-size: 0.85rem; color: #ccc; }
+    #streak { color: #FF6B6B; font-weight: bold; }
+    #table-btn {
+      background: #2a2a5a; color: #ddd; border: 1px solid #4a4a8a;
+      padding: 6px 11px; border-radius: 8px; cursor: pointer; font-size: 0.82rem;
+      transition: background 0.2s;
+    }
+    #table-btn:hover { background: #3a3a7a; }
+
+    /* Game area */
+    #game-area {
+      position: relative; flex: 1; min-height: 180px; overflow: hidden;
+      background: linear-gradient(180deg, #080820 0%, #12122a 100%);
+    }
+
+    /* Falling block */
+    #falling-block {
+      position: absolute;
+      width: 72px; height: 62px;
+      left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, #2a4080, #1a3060);
+      border: 2px solid #5090ff; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.75rem; font-weight: bold; color: #fff;
+      box-shadow: 0 0 18px rgba(80,144,255,0.45);
+      user-select: none; z-index: 10;
+    }
+    #falling-block.num3digit { font-size: 1.35rem; }
+    #falling-block.shake, #rescue-block.shake { animation: shake 0.4s ease-in-out; }
+    #falling-block.wrong-flash {
+      border-color: #FF4444;
+      box-shadow: 0 0 22px rgba(255,68,68,0.7);
+    }
+
+    /* Stack area */
+    #stack-area {
+      position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column-reverse; gap: 2px;
+    }
+    .stacked-block {
+      width: 72px; height: 58px;
+      background: linear-gradient(135deg, #3a2060, #2a1050);
+      border: 2px solid #8a60ff; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: bold; color: #ccc; opacity: 0.88;
+      animation: blockLand 0.3s ease-out;
+    }
+
+    /* Stack dots */
+    #stack-counter {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.55); border-radius: 8px; padding: 5px 9px;
+      font-size: 0.72rem; color: #aaa;
+    }
+    .stack-dots { display: flex; gap: 3px; margin-top: 3px; }
+    .stack-dot { width: 9px; height: 9px; border-radius: 50%; background: #3a3a5a; transition: background 0.3s; }
+    .stack-dot.filled { background: #FF6B6B; }
+    .stack-dot.critical { background: #FF2222; animation: pulse 0.5s infinite; }
+
+    /* Speed level badge */
+    #speed-badge {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,0.55); border-radius: 8px; padding: 5px 9px;
+      font-size: 0.72rem; color: #aaa;
+    }
+    #speed-val { color: #1E90FF; font-weight: bold; }
+
+    /* Pause overlay */
+    #pause-indicator {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: rgba(0,0,0,0.82); color: #fff; font-size: 1.4rem;
+      padding: 14px 28px; border-radius: 12px; z-index: 50;
+    }
+
+    /* Digit panel */
+    #digit-panel { padding: 4px 10px 8px; background: #0a0a1a; border-top: 1px solid #2a2a4a; overflow: visible; }
+
+    /* Toast (inside game-area) */
+    .game-toast {
+      position: absolute; top: 55px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,100,100,0.92); color: #fff;
+      padding: 7px 16px; border-radius: 20px; font-weight: bold;
+      z-index: 100; animation: toastAnim 2s forwards; white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Combo text */
+    .combo-text {
+      position: absolute; top: 42%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 1.4rem; font-weight: bold; color: #FFD700;
+      text-shadow: 0 0 18px rgba(255,215,0,0.9);
+      animation: comboAnim 1.6s ease-out forwards; z-index: 20;
+      pointer-events: none; white-space: nowrap;
+    }
+
+    /* Level up text */
+    .levelup-text {
+      position: absolute; top: 30%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 1.2rem; font-weight: bold; color: #1E90FF;
+      text-shadow: 0 0 14px rgba(30,144,255,0.9);
+      animation: comboAnim 1.6s ease-out forwards; z-index: 20;
+      pointer-events: none; white-space: nowrap;
+    }
+
+    /* ========== RESCUE SCREEN ========== */
+    #rescue-screen {
+      background: #12122a; border-radius: 20px; padding: 20px 18px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    #rescue-title { font-size: 1.75rem; color: #FF6B6B; margin-bottom: 4px; }
+    #rescue-subtitle { color: #aaa; margin-bottom: 16px; font-size: 0.88rem; }
+    #rescue-block {
+      width: 100px; height: 88px;
+      background: linear-gradient(135deg, #4a2060, #2a1050);
+      border: 3px solid #FF6B6B; border-radius: 15px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.3rem; font-weight: bold; margin: 0 auto 16px;
+      box-shadow: 0 0 28px rgba(255,107,107,0.4);
+    }
+    #rescue-block.num3digit { font-size: 1.6rem; }
+
+    /* SVG timer */
+    #rescue-timer-container { position: relative; width: 80px; height: 80px; margin: 0 auto 14px; }
+    #rescue-timer-svg { transform: rotate(-90deg); }
+    #rescue-timer-circle {
+      stroke-dasharray: 226; stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+      stroke: #1E90FF; stroke-width: 8; fill: none; stroke-linecap: round;
+    }
+    #rescue-timer-circle.critical { stroke: #FF4444; }
+    #rescue-timer-text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 1.8rem; font-weight: bold;
+    }
+    #rescue-timer-text.critical { color: #FF4444; }
+    #rescue-progress { color: #aaa; margin-bottom: 12px; font-size: 0.88rem; }
+    #rescue-digit-panel { position: relative; margin-top: 10px; }
+
+    /* ========== INTER-GAME SCREENS (intro, done, milestone) ========== */
+    .inter-screen {
+      background: #12122a; border-radius: 20px; padding: 36px 22px;
+      text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .inter-screen .is-icon { font-size: 3.2rem; margin-bottom: 10px; }
+    .inter-screen h2 { font-size: 1.9rem; margin-bottom: 8px; font-weight: bold; }
+    .inter-screen .is-sub { color: #aaa; margin-bottom: 10px; font-size: 0.9rem; }
+    .inter-screen .is-info { color: #FFD700; font-size: 1.15rem; font-weight: bold; margin-bottom: 24px; }
+    .btn-continue {
+      background: linear-gradient(135deg, #1E90FF, #9370DB);
+      color: #fff; border: none; padding: 13px 32px;
+      font-size: 1.1rem; font-weight: bold; border-radius: 25px;
+      cursor: pointer; transition: filter 0.2s; margin: 5px;
+    }
+    .btn-continue:hover { filter: brightness(1.2); }
+    .btn-restart-inter {
+      background: rgba(255,255,255,0.1); color: #ccc;
+      border: 1px solid rgba(255,255,255,0.22); padding: 13px 22px;
+      font-size: 1rem; font-weight: bold; border-radius: 25px;
+      cursor: pointer; margin: 5px; transition: background 0.2s;
+    }
+    .btn-restart-inter:hover { background: rgba(255,255,255,0.2); }
+
+    /* ========== GAME OVER SCREEN ========== */
+    #gameover-screen {
+      background: #12122a; border-radius: 20px; padding: 22px 18px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6); max-height: 92vh; overflow-y: auto;
+    }
+    #gameover-title { font-size: 2.3rem; font-weight: bold; color: #FF4444; margin-bottom: 4px; }
+    #final-score { font-size: 1.1rem; color: #FFD700; margin-bottom: 14px; }
+
+    #score-entry {
+      background: rgba(255,215,0,0.08); border: 1px solid #FFD700;
+      border-radius: 10px; padding: 12px; margin-bottom: 14px;
+    }
+    #score-entry p { color: #FFD700; margin-bottom: 8px; font-size: 0.9rem; }
+    #player-name-input {
+      background: #0a0a2a; border: 1px solid #4a4a8a; border-radius: 8px;
+      padding: 8px 12px; color: #fff; font-size: 1rem; width: 100%;
+      margin-bottom: 8px; text-align: center;
+    }
+    #save-score-btn {
+      background: #FFD700; color: #000; border: none;
+      padding: 8px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;
+    }
+
+    #failed-summary { margin-bottom: 14px; }
+    #failed-summary h3 { color: #FF6B6B; margin-bottom: 10px; font-size: 0.95rem; }
+    .failed-item {
+      background: rgba(255,107,107,0.08); border: 1px solid #FF6B6B55;
+      border-radius: 8px; padding: 9px 13px; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .failed-number { font-size: 1.25rem; font-weight: bold; }
+    .failed-solutions { color: #aaa; font-size: 0.85rem; }
+    .failed-solutions span {
+      display: inline-block; background: rgba(255,255,255,0.1);
+      border-radius: 4px; padding: 2px 6px; margin: 2px; color: #eee;
+      direction: ltr; unicode-bidi: embed;
+    }
+
+    #high-scores { margin-bottom: 14px; }
+    #high-scores h3 { color: #FFD700; margin-bottom: 8px; font-size: 0.95rem; }
+    .score-entry-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 10px; border-radius: 6px; margin-bottom: 3px;
+    }
+    .score-entry-row:nth-child(1) { background: rgba(255,215,0,0.14); }
+    .score-entry-row:nth-child(2) { background: rgba(192,192,192,0.09); }
+    .score-entry-row:nth-child(3) { background: rgba(205,127,50,0.09); }
+    .score-rank { color: #FFD700; font-weight: bold; min-width: 28px; }
+    .score-name { color: #fff; flex: 1; margin: 0 10px; text-align: right; }
+    .score-value { color: #FFD700; font-weight: bold; }
+
+    .btn-play-again {
+      background: linear-gradient(135deg, #1E90FF, #9370DB);
+      color: #fff; border: none; padding: 13px 40px;
+      font-size: 1.15rem; font-weight: bold; border-radius: 25px;
+      cursor: pointer; width: 100%; transition: filter 0.2s;
+    }
+    .btn-play-again:hover { filter: brightness(1.2); }
+
+    /* ========== MULTIPLICATION TABLE MODAL ========== */
+    #table-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.88); display: flex;
+      align-items: center; justify-content: center; z-index: 1000;
+    }
+    #table-content {
+      background: #12122a; border-radius: 16px; padding: 18px;
+      max-width: 95vw; max-height: 90vh; overflow: auto;
+    }
+    #table-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    #table-header h2 { color: #FFD700; font-size: 1.1rem; }
+    #close-table-btn {
+      background: #FF4444; color: #fff; border: none;
+      width: 30px; height: 30px; border-radius: 50%;
+      cursor: pointer; font-size: 1rem; font-weight: bold;
+    }
+    #mult-table { border-collapse: collapse; font-size: 0.82rem; }
+    #mult-table th, #mult-table td {
+      border: 1px solid #2a2a5a; padding: 5px 8px; text-align: center; min-width: 30px;
+    }
+    #mult-table th { background: #2a2a5a; color: #FFD700; font-weight: bold; }
+    #mult-table td { color: #ddd; background: #0a0a2a; }
+    #mult-table td.highlight { color: #FFD700; font-weight: bold; }
+    #mult-table tr:hover td { background: #1a1a4a; }
+
+    /* ========== PARTICLES ========== */
+    .particle {
+      position: fixed; border-radius: 50%; pointer-events: none; z-index: 500;
+      animation: particleFly 0.85s ease-out forwards;
+    }
+    .mult-text {
+      position: fixed; font-size: 1.9rem; font-weight: bold;
+      pointer-events: none; z-index: 501; direction: ltr;
+      animation: multFloat 1.5s ease-out forwards; white-space: nowrap;
+    }
+
+    /* ========== KEYFRAMES ========== */
+    @keyframes shake {
+      0%,100% { transform: translateX(-50%) rotate(0deg); }
+      20%     { transform: translateX(calc(-50% - 9px)) rotate(-4deg); }
+      40%     { transform: translateX(calc(-50% + 9px)) rotate(4deg); }
+      60%     { transform: translateX(calc(-50% - 5px)) rotate(-2deg); }
+      80%     { transform: translateX(calc(-50% + 5px)) rotate(2deg); }
+    }
+    @keyframes blockLand {
+      0%   { transform: scaleY(1.18) scaleX(0.88); }
+      50%  { transform: scaleY(0.90) scaleX(1.06); }
+      100% { transform: scaleY(1)    scaleX(1);    }
+    }
+    @keyframes particleFly {
+      0%   { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0.15); }
+    }
+    @keyframes multFloat {
+      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.4); }
+      25%  { opacity: 1; transform: translate(-50%,-50%) scale(1.25); }
+      65%  { opacity: 1; transform: translate(-50%,-75%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-115%) scale(0.9); }
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.25; }
+    }
+    @keyframes comboAnim {
+      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
+      18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.25); }
+      65%  { opacity: 1; transform: translate(-50%,-68%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-90%) scale(0.92); }
+    }
+    @keyframes toastAnim {
+      0%  { opacity: 0; transform: translateX(-50%) scale(0.8); }
+      14% { opacity: 1; transform: translateX(-50%) scale(1); }
+      72% { opacity: 1; }
+      100%{ opacity: 0; }
+    }
+
+    /* ========== MOBILE ========== */
+    @media (max-width: 420px) {
+      #game-screen { border-radius: 0; }
+      #app { max-width: 100vw; }
+      #header { padding: 8px 10px; }
+      #score { font-size: 1rem; }
+      #falling-block { width: 66px; height: 58px; font-size: 1.6rem; }
+      #falling-block.num3digit { font-size: 1.25rem; }
+      .stacked-block { width: 66px; height: 54px; font-size: 1.2rem; }
+      .digit-btn { width: 56px; height: 48px; font-size: 1.25rem; }
+    }
+    @media (max-height: 650px) {
+      #header { padding: 6px 10px; }
+      #digit-panel { padding: 2px 10px 4px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== START SCREEN ===== -->
+  <div id="start-screen">
+    <h1>פצצת כפל 🎆</h1>
+    <p class="credit">BY R.B</p>
+    <p class="subtitle">תרגול לוח הכפל עד 100 — בסגנון טטריס</p>
+    <div class="instructions">
+      <strong>איך משחקים?</strong><br>
+      🔢 מספר יורד בקוביה — מצא מה מחלק אותו<br>
+      👆 לחץ על הספרה הנכונה (3–10)<br>
+      💥 נכון = פיצוץ צבעוני + המכפלה המלאה!<br>
+      📦 5 קוביות ערמה = סבב הצלה (5 שניות לקוביה)<br>
+      ⚡ ככל שתצדק — המהירות עולה!
+    </div>
+    <div class="digit-preview" id="digit-preview"></div>
+    <div class="difficulty-choice">
+      <button class="btn-difficulty btn-diff-beginner" onclick="startGame('beginner')">
+        🌱 מתחיל
+        <span class="diff-desc">קצב ראשוני מתון</span>
+      </button>
+      <button class="btn-difficulty btn-diff-master" onclick="startGame('master')">
+        ⚡ מאסטר
+        <span class="diff-desc">קצב מהיר יותר</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="game-screen" class="hidden">
+    <div id="header">
+      <div id="score-display">ניקוד: <span id="score">0</span></div>
+      <button id="table-btn" onclick="openTable()">📚 לוח הכפל</button>
+      <div id="streak-display">🔥 <span id="streak">0</span> ברצף</div>
+    </div>
+
+    <div id="game-area">
+      <div id="stack-counter">
+        <div style="font-size:0.7rem;margin-bottom:3px">ערמה</div>
+        <div class="stack-dots">
+          <div class="stack-dot" id="dot-0"></div>
+          <div class="stack-dot" id="dot-1"></div>
+          <div class="stack-dot" id="dot-2"></div>
+          <div class="stack-dot" id="dot-3"></div>
+          <div class="stack-dot" id="dot-4"></div>
+        </div>
+      </div>
+      <div id="speed-badge">⚡ <span id="speed-val">1</span></div>
+
+      <div id="falling-block" class="hidden">
+        <span id="block-number"></span>
+      </div>
+
+      <div id="stack-area"></div>
+      <div id="pause-indicator" class="hidden">⏸ הפסקה</div>
+    </div>
+
+    <div id="digit-panel">
+      <div id="arc-btns">
+        <button class="digit-btn" data-digit="3"  onclick="handleDigitClick(3)">3</button>
+        <button class="digit-btn" data-digit="4"  onclick="handleDigitClick(4)">4</button>
+        <button class="digit-btn" data-digit="5"  onclick="handleDigitClick(5)">5</button>
+        <button class="digit-btn" data-digit="6"  onclick="handleDigitClick(6)">6</button>
+        <button class="digit-btn" data-digit="7"  onclick="handleDigitClick(7)">7</button>
+        <button class="digit-btn" data-digit="8"  onclick="handleDigitClick(8)">8</button>
+        <button class="digit-btn" data-digit="9"  onclick="handleDigitClick(9)">9</button>
+        <button class="digit-btn" data-digit="10" onclick="handleDigitClick(10)">10</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RESCUE SCREEN ===== -->
+  <div id="rescue-screen" class="hidden">
+    <div id="rescue-title">🚨 סבב הצלה!</div>
+    <div id="rescue-subtitle">פתור כל קוביה תוך 5 שניות</div>
+
+    <div id="rescue-block"><span id="rescue-number"></span></div>
+
+    <div id="rescue-timer-container">
+      <svg id="rescue-timer-svg" width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="36" stroke="#2a2a5a" stroke-width="8" fill="none"/>
+        <circle id="rescue-timer-circle" cx="40" cy="40" r="36"/>
+      </svg>
+      <div id="rescue-timer-text">5</div>
+    </div>
+
+    <div id="rescue-progress"></div>
+
+    <div id="rescue-digit-panel">
+      <div id="rescue-arc-btns">
+        <button class="digit-btn" data-digit="3"  onclick="handleRescueClick(3)">3</button>
+        <button class="digit-btn" data-digit="4"  onclick="handleRescueClick(4)">4</button>
+        <button class="digit-btn" data-digit="5"  onclick="handleRescueClick(5)">5</button>
+        <button class="digit-btn" data-digit="6"  onclick="handleRescueClick(6)">6</button>
+        <button class="digit-btn" data-digit="7"  onclick="handleRescueClick(7)">7</button>
+        <button class="digit-btn" data-digit="8"  onclick="handleRescueClick(8)">8</button>
+        <button class="digit-btn" data-digit="9"  onclick="handleRescueClick(9)">9</button>
+        <button class="digit-btn" data-digit="10" onclick="handleRescueClick(10)">10</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER SCREEN ===== -->
+  <div id="gameover-screen" class="hidden">
+    <div id="gameover-title">GAME OVER</div>
+    <div id="final-score"></div>
+
+    <div id="score-entry" class="hidden">
+      <p>🏆 שיא חדש! הכנס את שמך:</p>
+      <input type="text" id="player-name-input" placeholder="שמך כאן..." maxlength="15">
+      <button id="save-score-btn" onclick="savePlayerScore()">שמור שיא 🏆</button>
+    </div>
+
+    <div id="failed-summary">
+      <h3>מספרים שלא ענית עליהם נכון:</h3>
+      <div id="failed-list"></div>
+    </div>
+
+    <div id="high-scores">
+      <h3>🏆 טבלת שיאים</h3>
+      <div id="scores-list"></div>
+    </div>
+
+    <button class="btn-play-again" onclick="restartGame()">שחק שוב! 🎮</button>
+  </div>
+
+  <!-- ===== MULTIPLICATION TABLE MODAL ===== -->
+  <div id="table-modal" class="hidden">
+    <div id="table-content">
+      <div id="table-header">
+        <h2>📚 לוח הכפל (2–10)</h2>
+        <button id="close-table-btn" onclick="closeTable()">✕</button>
+      </div>
+      <table id="mult-table"></table>
+    </div>
+  </div>
+
+  <!-- ===== RESCUE INTRO SCREEN ===== -->
+  <div id="rescue-intro-screen" class="inter-screen hidden">
+    <div class="is-icon">🚨</div>
+    <h2 style="color:#FF6B6B">סבב הצלה!</h2>
+    <p class="is-sub">הערמה התמלאה — הגיע זמן לפתור את הקוביות</p>
+    <div class="is-info" id="rescue-intro-count"></div>
+    <button class="btn-continue" onclick="beginRescue()">התחל סבב הצלה! 🚀</button>
+  </div>
+
+  <!-- ===== RESCUE DONE SCREEN ===== -->
+  <div id="rescue-done-screen" class="inter-screen hidden">
+    <div class="is-icon">🎉</div>
+    <h2 style="color:#32CD32">כל הכבוד!</h2>
+    <p class="is-sub">ענית על כל הקוביות בהצלחה!</p>
+    <div class="is-info" id="rescue-done-score"></div>
+    <button class="btn-continue" onclick="continueAfterRescue()">המשך לשחק ▶</button>
+  </div>
+
+  <!-- ===== MILESTONE SCREEN (every 20 correct) ===== -->
+  <div id="milestone-screen" class="inter-screen hidden">
+    <div class="is-icon">🌟</div>
+    <h2 style="color:#FFD700"><span id="milestone-count">20</span> תרגילים!</h2>
+    <p class="is-sub">הגעת לנקודת ביניים — עצרת רגע לנשום</p>
+    <div class="is-info" id="milestone-score"></div>
+    <button id="milestone-switch-btn" class="btn-switch-master hidden" onclick="switchToMaster()">
+      עבור למאסטר ⚡
+    </button>
+    <div>
+      <button class="btn-continue" onclick="continueMilestone()">המשך 💪</button>
+      <button class="btn-restart-inter" onclick="restartFromMilestone()">בחר רמה 🔄</button>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<script>
+// ==================== CONSTANTS ====================
+const DIGIT_COLORS = {
+  2:  '#666666',
+  3:  '#FFD700',
+  4:  '#FF8C00',
+  5:  '#1E90FF',
+  6:  '#9370DB',
+  7:  '#FF4444',
+  8:  '#32CD32',
+  9:  '#FF69B4',
+  10: '#00CED1'
+};
+
+// All two/three-digit products from 2-10 table that have a valid answer in {3..10}
+// (where valid = n%d===0 && n/d in {2..10})
+const NUMBER_POOL = [
+  10,12,14,15,16,18,20,21,24,25,27,28,30,32,35,36,40,42,45,
+  48,49,50,54,56,60,63,64,70,72,80,81,90,100
+];
+
+const GAME_AREA_H   = 420;
+const BLOCK_H       = 62;  // visual + JS calc
+const STACK_SLOT_H  = 60;  // height per stacked block slot
+const MAX_STACK     = 5;
+const RESCUE_SECS   = 5;
+const SCORES_KEY    = 'multiplyBlast_scores';
+
+// ==================== GAME STATE ====================
+let gs = {};
+let audioCtx = null;
+let rafId    = null;
+
+const SPEED = {
+  beginner: { base: 0.032, mult: 1.20, max: 0.14 },
+  master:   { base: 0.045, mult: 1.20, max: 0.20 }
+};
+
+function makeState() {
+  return {
+    num:         null,
+    blockY:      0,
+    fallSpeed:   SPEED.beginner.base,
+    speedLevel:  1,
+    correctCount:0,
+    stack:       [],
+    failedNums:  [],
+    score:       0,
+    streak:      0,
+    active:      false,
+    paused:      false,
+    isRescue:    false,
+    rescueQueue: [],
+    rescueIdx:   0,
+    rescueTimer: null,
+    rescueTime:  RESCUE_SECS,
+    lastTs:      null,
+    usedNums:    new Set(),
+    usedDigitsPerNum: {},
+    difficulty:  'beginner',
+    baseFallSpeed: SPEED.beginner.base,
+    speedMult:     SPEED.beginner.mult,
+    maxFallSpeed:  SPEED.beginner.max
+  };
+}
+
+// ==================== AUDIO ====================
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function tone(freq, dur, type='sine', vol=0.28, delay=0) {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = type; o.frequency.value = freq;
+    const t = audioCtx.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur);
+  } catch(e) {}
+}
+function sndCorrect()  { [523,659,784].forEach((f,i)=>tone(f,.14,'sine',.24,i*.08)); }
+function sndExplode()  { for(let i=0;i<6;i++) tone(250+Math.random()*500,.07,'square',.07,i*.05); }
+function sndWrong()    { tone(170,.22,'sawtooth',.2); tone(130,.28,'sawtooth',.14,.1); }
+function sndBtn2()     { tone(75,.1,'square',.14); }
+function sndGameOver() { [392,349,330,261].forEach((f,i)=>tone(f,.4,'sine',.18,i*.24)); }
+function sndTick()     { tone(880,.04,'square',.1); }
+function sndRescue()   { [440,554,659].forEach((f,i)=>tone(f,.1,'sine',.2,i*.06)); }
+
+// ==================== VALID ANSWERS ====================
+function validAnswers(n) {
+  const res = [];
+  for (let d = 3; d <= 10; d++) {
+    if (n % d === 0) res.push(d);
+  }
+  return res;
+}
+function solutionStrings(n) {
+  return validAnswers(n).map(d => `${d} × ${n/d} = ${n}`);
+}
+
+// ==================== PARTICLES ====================
+function burst(x, y, color) {
+  const N = 26;
+  for (let i = 0; i < N; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `background:${color};left:${x}px;top:${y}px;` +
+      `width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;`;
+    const ang = (Math.PI*2*i/N) + (Math.random()-.5)*.6;
+    const dist = 55 + Math.random()*90;
+    p.style.setProperty('--dx', Math.cos(ang)*dist+'px');
+    p.style.setProperty('--dy', Math.sin(ang)*dist+'px');
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 950);
+  }
+}
+
+function showMultText(x, y, txt, color) {
+  const el = document.createElement('div');
+  el.className = 'mult-text';
+  el.textContent = txt;
+  el.style.cssText = `left:${x}px;top:${y}px;color:${color};text-shadow:0 0 14px ${color};`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1650);
+}
+
+function showToast(msg) {
+  const old = document.getElementById('toast-el');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'toast-el';
+  el.className = 'game-toast';
+  el.textContent = msg;
+  document.getElementById('game-area').appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
+function showCombo(streak) {
+  const old = document.getElementById('combo-el');
+  if (old) old.remove();
+  let msg = '';
+  if      (streak === 3)  msg = '🔥 COMBO x3!';
+  else if (streak === 5)  msg = '⚡ SUPER x5!';
+  else if (streak === 8)  msg = '🌟 AWESOME x8!';
+  else if (streak >= 10)  msg = '💫 LEGENDARY!';
+  if (!msg) return;
+  const el = document.createElement('div');
+  el.id = 'combo-el'; el.className = 'combo-text'; el.textContent = msg;
+  document.getElementById('game-area').appendChild(el);
+  setTimeout(()=>el.remove(), 1700);
+}
+
+function showLevelUp(level) {
+  const el = document.createElement('div');
+  el.className = 'levelup-text';
+  el.textContent = `⚡ מהירות ${level}!`;
+  document.getElementById('game-area').appendChild(el);
+  setTimeout(()=>el.remove(), 1700);
+}
+
+// ==================== UI HELPERS ====================
+function $id(id) { return document.getElementById(id); }
+
+function updateScore() { $id('score').textContent = gs.score; }
+function updateStreak(){ $id('streak').textContent = gs.streak; }
+function updateSpeed() { $id('speed-val').textContent = gs.speedLevel; }
+
+function updateDots() {
+  for (let i = 0; i < MAX_STACK; i++) {
+    const d = $id(`dot-${i}`);
+    d.className = 'stack-dot';
+    if (i < gs.stack.length)
+      d.classList.add(gs.stack.length >= 4 ? 'critical' : 'filled');
+  }
+}
+
+function updateStackDisplay() {
+  const area = $id('stack-area');
+  area.innerHTML = '';
+  gs.stack.forEach(n => {
+    const b = document.createElement('div');
+    b.className = 'stacked-block';
+    b.textContent = n;
+    area.appendChild(b);
+  });
+  updateDots();
+}
+
+function floorY() {
+  const el = $id('game-area');
+  const h = (el && el.offsetHeight) || GAME_AREA_H;
+  return h - BLOCK_H - gs.stack.length * STACK_SLOT_H;
+}
+
+function positionBlock() {
+  $id('falling-block').style.top = gs.blockY + 'px';
+}
+
+// ==================== GAME LOOP ====================
+function loop(ts) {
+  if (!gs.active || gs.paused || gs.isRescue) return;
+  if (!gs.lastTs) gs.lastTs = ts;
+  const dt = Math.min(ts - gs.lastTs, 50);
+  gs.lastTs = ts;
+
+  const fy = floorY();
+  gs.blockY = Math.min(gs.blockY + gs.fallSpeed * dt, fy);
+  positionBlock();
+
+  if (gs.blockY >= fy) { blockLanded(); return; }
+  rafId = requestAnimationFrame(loop);
+}
+
+// ==================== BLOCK MECHANICS ====================
+function pickNumber() {
+  function hasAvail(n) {
+    const bl = gs.usedDigitsPerNum[n] || new Set();
+    return validAnswers(n).some(d => !bl.has(d));
+  }
+  let pool = NUMBER_POOL.filter(n => !gs.usedNums.has(n) && hasAvail(n));
+  if (!pool.length) {
+    gs.usedNums.clear();
+    pool = NUMBER_POOL.filter(n => hasAvail(n));
+  }
+  if (!pool.length) {
+    // All digits exhausted for all numbers — full reset
+    gs.usedDigitsPerNum = {};
+    gs.usedNums.clear();
+    pool = NUMBER_POOL.slice();
+  }
+  const n = pool[Math.floor(Math.random() * pool.length)];
+  gs.usedNums.add(n);
+  if (gs.usedNums.size > NUMBER_POOL.length * 0.6) {
+    const arr = [...gs.usedNums];
+    gs.usedNums = new Set(arr.slice(-6));
+  }
+  return n;
+}
+
+function startBlock() {
+  if (!gs.active) return;
+  gs.num   = pickNumber();
+  gs.blockY = 0;
+  gs.lastTs = null;
+  const b = $id('falling-block');
+  b.classList.remove('hidden','shake','wrong-flash');
+  b.classList.toggle('num3digit', gs.num >= 100);
+  b.style.top = '0px';
+  $id('block-number').textContent = gs.num;
+  updateBlockedButtons();
+  rafId = requestAnimationFrame(loop);
+}
+
+function blockLanded() {
+  $id('falling-block').classList.add('hidden');
+  stackBlock(gs.num);
+  gs.num = null;
+}
+
+function stackBlock(n) {
+  gs.stack.push(n);
+  gs.failedNums.push(n);
+  gs.streak = 0;
+  updateStreak();
+  updateStackDisplay();
+  if (gs.stack.length >= MAX_STACK) { setTimeout(startRescue, 400); }
+  else                               { setTimeout(startBlock,   350); }
+}
+
+// ==================== DIGIT CLICK ====================
+function handleDigitClick(d) {
+  if (!gs.active || gs.isRescue || gs.paused || gs.num === null) return;
+  initAudio();
+  if (d === 2) { sndBtn2(); showToast('קל מדי! נסה ספרה אחרת 😄'); return; }
+  const bl = gs.usedDigitsPerNum[gs.num] || new Set();
+  if (bl.has(d)) { sndBtn2(); showToast(`${d} כבר שומשה! נסה ספרה אחרת 🔒`); return; }
+  if (validAnswers(gs.num).includes(d)) { correctAnswer(d); }
+  else                                  { wrongAnswer(); }
+}
+
+function correctAnswer(d) {
+  const n = gs.num;
+  const other = n / d;
+  const color = DIGIT_COLORS[d];
+  if (!gs.usedDigitsPerNum[n]) gs.usedDigitsPerNum[n] = new Set();
+  gs.usedDigitsPerNum[n].add(d);
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  gs.num = null;
+
+  const b = $id('falling-block');
+  const r = b.getBoundingClientRect();
+  const cx = r.left + r.width  / 2;
+  const cy = r.top  + r.height / 2;
+  b.classList.add('hidden');
+
+  burst(cx, cy, color);
+  sndExplode();
+  setTimeout(() => {
+    showMultText(cx, cy, `${d} × ${other} = ${n}`, color);
+    sndCorrect();
+  }, 110);
+
+  const pts = 10 * d * gs.speedLevel;
+  gs.score += pts;
+  gs.streak++;
+  gs.correctCount++;
+  updateScore(); updateStreak();
+
+  // speed up every 5 correct
+  if (gs.correctCount % 5 === 0 && gs.speedLevel < 10) {
+    gs.speedLevel++;
+    gs.fallSpeed = Math.min(
+      gs.baseFallSpeed * Math.pow(gs.speedMult, gs.speedLevel - 1),
+      gs.maxFallSpeed
+    );
+    updateSpeed();
+    setTimeout(() => showLevelUp(gs.speedLevel), 200);
+  }
+
+  showCombo(gs.streak);
+
+  // if this number was in failedNums, remove it
+  const fi = gs.failedNums.lastIndexOf(n);
+  if (fi !== -1) gs.failedNums.splice(fi, 1);
+
+  // milestone every 20 correct answers
+  if (gs.correctCount % 20 === 0) {
+    setTimeout(showMilestone, 900);
+  } else {
+    setTimeout(startBlock, 850);
+  }
+}
+
+function showMilestone() {
+  if (!gs.active) return;
+  $id('game-screen').classList.add('hidden');
+  $id('milestone-count').textContent = gs.correctCount;
+  $id('milestone-score').textContent = `ניקוד: ${gs.score}`;
+  $id('milestone-switch-btn').classList.toggle('hidden', gs.difficulty === 'master');
+  $id('milestone-screen').classList.remove('hidden');
+}
+
+function continueMilestone() {
+  initAudio();
+  $id('milestone-screen').classList.add('hidden');
+  $id('game-screen').classList.remove('hidden');
+  startBlock();
+}
+
+function switchToMaster() {
+  initAudio();
+  gs.difficulty     = 'master';
+  gs.baseFallSpeed = SPEED.master.base;
+  gs.speedMult     = SPEED.master.mult;
+  gs.maxFallSpeed  = SPEED.master.max;
+  gs.fallSpeed = Math.min(
+    gs.baseFallSpeed * Math.pow(gs.speedMult, gs.speedLevel - 1),
+    gs.maxFallSpeed
+  );
+  $id('milestone-screen').classList.add('hidden');
+  $id('game-screen').classList.remove('hidden');
+  startBlock();
+}
+
+function restartFromMilestone() {
+  $id('milestone-screen').classList.add('hidden');
+  $id('start-screen').classList.remove('hidden');
+}
+
+function wrongAnswer() {
+  sndWrong();
+  const b = $id('falling-block');
+  b.classList.remove('shake');
+  void b.offsetWidth;
+  b.classList.add('shake', 'wrong-flash');
+  gs.streak = 0; updateStreak();
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const num = gs.num;
+  gs.num = null; // block any further clicks during animation
+  setTimeout(() => {
+    b.classList.remove('shake', 'wrong-flash');
+    if (gs.active && !gs.isRescue) {
+      gs.num = num;
+      blockLanded(); // wrong = block goes straight to stack
+    }
+  }, 450);
+}
+
+function updateBlockedButtons() {
+  const blocked = gs.usedDigitsPerNum[gs.num] || new Set();
+  document.querySelectorAll('#digit-panel .digit-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.digit);
+    const isBlocked = blocked.has(d);
+    btn.classList.toggle('blocked', isBlocked);
+    btn.disabled = isBlocked;
+  });
+}
+
+// ==================== RESCUE ROUND ====================
+function startRescue() {
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  gs.isRescue    = true;
+  gs.rescueQueue = [...gs.stack];
+  gs.rescueIdx   = 0;
+  gs.stack       = [];
+
+  $id('game-screen').classList.add('hidden');
+  $id('rescue-intro-count').textContent =
+    `${gs.rescueQueue.length} קוביות ממתינות לפתרון`;
+  $id('rescue-intro-screen').classList.remove('hidden');
+  updateStackDisplay();
+}
+
+function beginRescue() {
+  initAudio();
+  $id('rescue-intro-screen').classList.add('hidden');
+  $id('rescue-screen').classList.remove('hidden');
+  setTimeout(() => layoutArc('rescue-arc-btns'), 0);
+  showRescueBlock();
+}
+
+function showRescueBlock() {
+  if (gs.rescueIdx >= gs.rescueQueue.length) { rescueSuccess(); return; }
+
+  // Re-enable all rescue buttons for each new block
+  document.querySelectorAll('#rescue-digit-panel .digit-btn').forEach(btn => btn.disabled = false);
+
+  const n = gs.rescueQueue[gs.rescueIdx];
+  $id('rescue-number').textContent = n;
+  $id('rescue-block').classList.toggle('num3digit', n >= 100);
+  $id('rescue-progress').textContent =
+    `קוביה ${gs.rescueIdx+1} מתוך ${gs.rescueQueue.length}`;
+
+  gs.rescueTime = RESCUE_SECS;
+  refreshRescueTimer(gs.rescueTime, RESCUE_SECS);
+  if (gs.rescueTimer) clearInterval(gs.rescueTimer);
+
+  gs.rescueTimer = setInterval(() => {
+    gs.rescueTime--;
+    refreshRescueTimer(gs.rescueTime, RESCUE_SECS);
+    if (gs.rescueTime <= 1) sndTick();
+    if (gs.rescueTime <= 0) { clearInterval(gs.rescueTimer); rescueFailed(); }
+  }, 1000);
+}
+
+function refreshRescueTimer(left, total) {
+  const circ = $id('rescue-timer-circle');
+  const txt  = $id('rescue-timer-text');
+  circ.style.strokeDashoffset = 226 * (1 - left/total);
+  txt.textContent = Math.max(left, 0);
+  const crit = left <= 1;
+  circ.classList.toggle('critical', crit);
+  txt.classList.toggle('critical', crit);
+}
+
+function handleRescueClick(d) {
+  initAudio();
+  if (d === 2) { sndBtn2(); rescueHint('קל מדי! 😄'); return; }
+  const n = gs.rescueQueue[gs.rescueIdx];
+  if (!validAnswers(n).includes(d)) {
+    sndWrong();
+    clearInterval(gs.rescueTimer);
+    const b = $id('rescue-block');
+    b.style.borderColor = '#FF4444';
+    b.classList.add('shake');
+    // Disable all rescue buttons immediately to prevent further input
+    document.querySelectorAll('#rescue-digit-panel .digit-btn').forEach(btn => btn.disabled = true);
+    setTimeout(() => { b.style.borderColor = ''; b.classList.remove('shake'); rescueFailed(); }, 500);
+    return;
+  }
+  clearInterval(gs.rescueTimer);
+  if (!gs.usedDigitsPerNum[n]) gs.usedDigitsPerNum[n] = new Set();
+  gs.usedDigitsPerNum[n].add(d);
+  const other = n / d;
+  const color = DIGIT_COLORS[d];
+  const b = $id('rescue-block');
+  const r = b.getBoundingClientRect();
+  burst(r.left+r.width/2, r.top+r.height/2, color);
+  sndRescue();
+  showMultText(r.left+r.width/2, r.top+r.height/2, `${d} × ${other} = ${n}`, color);
+  gs.score += 10 * d * gs.speedLevel; updateScore();
+  const fi = gs.failedNums.indexOf(n);
+  if (fi !== -1) gs.failedNums.splice(fi, 1);
+  gs.rescueIdx++;
+  setTimeout(showRescueBlock, 820);
+}
+
+function rescueHint(msg) {
+  const p = $id('rescue-progress');
+  const orig = p.textContent;
+  p.textContent = msg; p.style.color = '#FFD700';
+  setTimeout(() => { p.textContent = orig; p.style.color = ''; }, 1500);
+}
+
+function rescueFailed() { triggerGameOver(); }
+
+function rescueSuccess() {
+  $id('rescue-screen').classList.add('hidden');
+  $id('rescue-done-score').textContent = `ניקוד נוכחי: ${gs.score}`;
+  $id('rescue-done-screen').classList.remove('hidden');
+}
+
+function continueAfterRescue() {
+  initAudio();
+  $id('rescue-done-screen').classList.add('hidden');
+  $id('game-screen').classList.remove('hidden');
+  gs.isRescue = false;
+  updateStackDisplay();
+  startBlock();
+}
+
+// ==================== GAME OVER ====================
+function triggerGameOver() {
+  if (gs.rescueTimer) clearInterval(gs.rescueTimer);
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  gs.active = false;
+  sndGameOver();
+  ['game-screen','rescue-screen','rescue-intro-screen',
+   'rescue-done-screen','milestone-screen'
+  ].forEach(id=>$id(id).classList.add('hidden'));
+  showGameOver();
+}
+
+function showGameOver() {
+  const scr = $id('gameover-screen');
+  scr.classList.remove('hidden');
+  $id('final-score').textContent = `ניקוד סופי: ${gs.score} נקודות`;
+
+  // Failed list
+  const list = $id('failed-list');
+  list.innerHTML = '';
+  const uniq = [...new Set(gs.failedNums)];
+  if (!uniq.length) {
+    list.innerHTML = '<p style="color:#32CD32">מעולה! ענית על הכל! 🎉</p>';
+  } else {
+    uniq.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'failed-item';
+      div.innerHTML = `<span class="failed-number">${n}</span>` +
+        `<div class="failed-solutions">${solutionStrings(n).map(s=>`<span>${s}</span>`).join('')}</div>`;
+      list.appendChild(div);
+    });
+  }
+
+  // High score entry
+  const scores = loadScores();
+  const qualifies = gs.score > 0 && (scores.length < 5 || gs.score > scores[scores.length-1].score);
+  $id('score-entry').classList.toggle('hidden', !qualifies);
+  $id('player-name-input').value = '';
+  displayScores(scores);
+}
+
+// ==================== HIGH SCORES ====================
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(SCORES_KEY)) || []; } catch { return []; }
+}
+function savePlayerScore() {
+  const name = $id('player-name-input').value.trim() || 'שחקן';
+  const scores = loadScores();
+  scores.push({ name, score: gs.score, date: new Date().toLocaleDateString('he-IL') });
+  scores.sort((a,b)=>b.score-a.score); scores.splice(5);
+  localStorage.setItem(SCORES_KEY, JSON.stringify(scores));
+  $id('score-entry').classList.add('hidden');
+  displayScores(scores);
+}
+function displayScores(scores) {
+  const medals = ['🥇','🥈','🥉','4.','5.'];
+  const list = $id('scores-list');
+  if (!scores.length) { list.innerHTML = '<p style="color:#888">אין שיאים עדיין</p>'; return; }
+  list.innerHTML = scores.map((s,i) =>
+    `<div class="score-entry-row">
+      <span class="score-rank">${medals[i]}</span>
+      <span class="score-name">${s.name}</span>
+      <span class="score-value">${s.score}</span>
+    </div>`
+  ).join('');
+}
+
+// ==================== MULTIPLICATION TABLE ====================
+function buildTable() {
+  let h = '<tr><th>×</th>';
+  for (let c = 2; c <= 10; c++) h += `<th style="color:${DIGIT_COLORS[c]}">${c}</th>`;
+  h += '</tr>';
+  for (let r = 2; r <= 10; r++) {
+    h += `<tr><th style="color:${DIGIT_COLORS[r]}">${r}</th>`;
+    for (let c = 2; c <= 10; c++) {
+      const p = r * c;
+      const inPool = NUMBER_POOL.includes(p);
+      h += `<td class="${inPool?'highlight':''}">${p}</td>`;
+    }
+    h += '</tr>';
+  }
+  $id('mult-table').innerHTML = h;
+}
+
+function openTable() {
+  initAudio();
+  gs.paused = true;
+  $id('pause-indicator').classList.remove('hidden');
+  $id('table-modal').classList.remove('hidden');
+}
+function closeTable() {
+  $id('table-modal').classList.add('hidden');
+  $id('pause-indicator').classList.add('hidden');
+  gs.paused = false;
+  if (gs.active && !gs.isRescue) { gs.lastTs = null; rafId = requestAnimationFrame(loop); }
+}
+
+// ==================== START / RESTART ====================
+function startGame(difficulty) {
+  initAudio();
+  gs = makeState();
+  const d = difficulty || 'beginner';
+  gs.difficulty      = d;
+  gs.baseFallSpeed = SPEED[d].base;
+  gs.speedMult     = SPEED[d].mult;
+  gs.maxFallSpeed  = SPEED[d].max;
+  gs.fallSpeed       = SPEED[d].base;
+  gs.active = true;
+  ['start-screen','gameover-screen','rescue-screen',
+   'rescue-intro-screen','rescue-done-screen','milestone-screen'
+  ].forEach(id=>$id(id).classList.add('hidden'));
+  $id('game-screen').classList.remove('hidden');
+  updateScore(); updateStreak(); updateSpeed(); updateStackDisplay();
+  setTimeout(() => layoutArc('arc-btns'), 0);
+  startBlock();
+}
+function restartGame() {
+  $id('gameover-screen').classList.add('hidden');
+  $id('start-screen').classList.remove('hidden');
+}
+
+// ==================== INIT ====================
+function initButtons() {
+  document.querySelectorAll('.digit-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.digit);
+    if (d !== 2) {
+      btn.style.background  = DIGIT_COLORS[d];
+      btn.style.color       = [3,5].includes(d) ? '#000' : '#fff';
+      btn.style.boxShadow   = `0 4px 14px ${DIGIT_COLORS[d]}55`;
+    }
+  });
+  // Start screen preview
+  const preview = $id('digit-preview');
+  for (let d = 3; d <= 10; d++) {
+    const b = document.createElement('div');
+    b.className = 'digit-badge' + (d === 10 ? ' wide' : '');
+    b.textContent = d;
+    b.style.background = DIGIT_COLORS[d];
+    b.style.color = [3,5].includes(d) ? '#000' : '#fff';
+    preview.appendChild(b);
+  }
+}
+
+// Keyboard support
+document.addEventListener('keydown', e => {
+  const d = parseInt(e.key);
+  if (d >= 2 && d <= 9) {
+    gs.isRescue ? handleRescueClick(d) : handleDigitClick(d);
+  }
+  if (e.key === '0' || e.key === '1') {
+    // '0' alone ignored; check for '10' combo isn't needed — just use the button
+  }
+  if (e.key === 'Escape' && !$id('table-modal').classList.contains('hidden')) closeTable();
+});
+
+// ==================== ARC LAYOUT ====================
+function layoutArc(containerId) {
+  const c = document.getElementById(containerId);
+  if (!c || !c.parentElement) return;
+  const btns = Array.from(c.querySelectorAll('.digit-btn'));
+  if (!btns.length) return;
+  const W = c.parentElement.offsetWidth || 360;
+  const BW = 62, BH = 50;
+  const R = Math.min(Math.round(W * 0.42), 155);     // radius
+  // Bowl / concave shape: center button at BOTTOM, sides rise up.
+  // Circle center is ABOVE the buttons at y = (bottom button center) - R.
+  const arcRise = Math.round(R * (1 - Math.cos(Math.PI / 3))); // = R/2
+  const C_H = arcRise + BH + 6;                               // container height
+  c.style.height = C_H + 'px';
+  const cx       = W / 2;
+  const cy       = C_H - Math.ceil(BH / 2) - 3;              // center-button center Y
+  const cCircleY = cy - R;                                     // circle centre (above)
+  const startAngle = -Math.PI / 3;                             // -60°
+  const endAngle   =  Math.PI / 3;                             // +60°
+  const n = btns.length;
+  btns.forEach((btn, i) => {
+    const angle = startAngle + (i / (n - 1)) * (endAngle - startAngle);
+    // Points on the LOWER arc: cos(angle) is positive → buttons below circle center
+    btn.style.left = Math.round(cx + R * Math.sin(angle) - BW / 2) + 'px';
+    btn.style.top  = Math.round(cCircleY + R * Math.cos(angle) - BH / 2) + 'px';
+  });
+}
+function layoutAllArcs() {
+  layoutArc('arc-btns');
+  layoutArc('rescue-arc-btns');
+}
+window.addEventListener('resize', layoutAllArcs);
+
+buildTable();
+initButtons();
+setTimeout(layoutAllArcs, 0);
+</script>
+</body>
+</html>
